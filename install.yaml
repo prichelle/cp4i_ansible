@@ -1,0 +1,156 @@
+---
+- hosts: localhost
+  vars:
+    config: "{{ lookup('file', config_file) }}"
+    key_scope: "{{ config | json_query('entitlement_scope') }}"
+    ns:  "{{ config | json_query('cp4i_namespace') }}"
+    operator_scope: "{{ config | json_query('operator_scope') }}"
+    entitlement_key: "{{ config | json_query('entitlement_key') }}"
+    sc: "{{ config | json_query('storage_class') }}"
+  tasks:
+    # Show the starting message
+    - name: Info
+      debug:
+        msg: "installation of CP4I on the active cluster"
+    
+    # Create a temporary directory for the template result
+    - name: Create tmp directory
+      file:
+        path: ./tmp 
+        state: directory
+    
+    # Upload the IBM catalog
+    - name: Apply IBM Catalog
+      ansible.builtin.command: oc apply -f ./templates/catalog.yaml
+    
+    # Get the catalog list  
+    - name: Get the catalog list
+      shell: oc get catalogsource -n openshift-marketplace | grep ibm-operator-catalog | wc -l 
+      register: catalog_result
+    
+    # Verify that the IBM catalog is present
+    - name: Check status of CP4I catalog 
+      assert:
+        that: catalog_result.stdout | trim == "1"
+        fail_msg: "CP4I catalog is not present"
+        success_msg: "CP4I catalog is present"
+    
+    # Check if target namespace is present 
+    - name:  Verify if target namespace is present 
+      shell: oc get ns --no-headers | grep {{ ns }} | wc -l
+      register: namespace_result
+    
+    # Create the target namespace if needed
+    - name: Create CP4I namespace
+      shell: 'oc new-project {{ ns }}'
+      when: namespace_result.stdout | trim == "0"
+    
+    # Define the CP4I operator scope : namespace or cluster
+    - name: Define CP4I Operator scope to cluster 
+      set_fact:
+         operator_ns : "openshift-operators"
+      when: operator_scope == "cluster"
+    - name: Define CP4I Operator scope to namespace 
+      set_fact:
+         operator_ns : "{{ns}}"
+      when: operator_scope == "namespace"
+    
+    # Create an operator group if operator scope is namespace
+    - name: template operator group
+      ansible.builtin.template:
+        src: ./templates/operatorgroup.j2
+        dest: ./tmp/operatorgroup.yaml
+      when: operator_scope == "namespace"
+
+    - name: Integration operator group
+      shell: oc apply -f ./tmp/operatorgroup.yaml
+      when: operator_scope == "namespace"
+
+    # Create the operators subscription 
+    - name: Template operator subscriptions
+      ansible.builtin.template:
+        src: ./templates/subscription.j2
+        dest: ./tmp/subscription.yaml
+    
+    - name: CP4I operator subscription
+      shell: oc apply -f ./tmp/subscription.yaml
+
+    # Wait that all operators are installed
+    - name: Sleep for 180 seconds and continue with play
+      wait_for:
+        timeout: 180
+
+    - name: Validate subscription
+      shell: "./scripts/csv_status.sh {{operator_ns}}"
+      register: result 
+      until: result.rc == 0
+      retries: 30
+      delay : 20
+      ignore_errors: yes
+    
+    # create the entitlment secret if the entitlment scope is namespace
+    - name: Create namespace secret
+      shell: oc create secret docker-registry ibm-entitlement-key --docker-username=cp --docker-password={{entitlement_key}} --docker-server=cp.icr.io --namespace={{ns}}
+      when: key_scope=='namespace'
+
+    # Create an Navigator instance
+    - name: Template navigator instance
+      ansible.builtin.template:
+        src: ./templates/navigator.j2
+        dest: ./tmp/navigator.yaml
+    
+    - name: CP4I navigator deployment 
+      shell: oc apply -f ./tmp/navigator.yaml
+
+    # Wait the completion of Cartridge deployment
+    - name: Sleep for 180 seconds and continue with play
+      wait_for:
+        timeout: 180
+
+    - name: Waiting Integration cartridge is ready
+      shell: "oc get cartridge -n {{ns}} integration --no-headers | awk '{print $2}'"
+      register: result 
+      until: result.stdout == "True"
+      retries: 60
+      delay : 60
+      ignore_errors: yes
+
+    # Wait the completion of Cartridge deployment
+    - name: Waiting Integration platform navigator is ready
+      shell: "oc get platformnavigator -n {{ns}} --no-headers |  awk '{print $4}'"
+      register: result 
+      until: result.stdout == "True"
+      retries: 60
+      delay : 60
+      ignore_errors: yes
+
+    # get the installtion result values 
+    - name: Get Platform navigator route
+      shell: oc get route -n {{ns}} | grep navigator | awk '{print $2}' 
+      register: navigator_route
+
+    - name: Get default admin username
+      shell: oc extract secret/platform-auth-idp-credentials -n ibm-common-services --to=- --keys=admin_username   
+      register: user
+    
+    - name: Get default admin username
+      shell: oc extract secret/platform-auth-idp-credentials -n ibm-common-services --to=- --keys=admin_password  
+      register: pwd
+
+    # deleting the tmp directory 
+    - name: Cleaning tmp directory
+      file:
+        state: absent
+        path: ./tmp
+
+    # Showing the result of the successful installation
+    - name: show templating results
+      debug:
+        msg:
+          - "CP4I installation result"
+          - " "
+          - "target namespace: {{ns}}"
+          - "route : https://{{navigator_route.stdout}}"
+          - "default user: {{user.stdout}}"
+          - "default password: {{pwd.stdout}}"
+    

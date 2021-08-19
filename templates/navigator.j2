@@ -1,0 +1,14 @@
+apiVersion: integration.ibm.com/v1beta1
+kind: PlatformNavigator
+metadata:
+    name: integration-navigator
+    namespace: {{ns}}
+spec:
+  license:
+    accept: true
+    license: L-RJON-BZFQU2
+  mqDashboard: true
+  replicas: 1
+  storage:
+    class: {{sc}}
+  version: 2021.2.1

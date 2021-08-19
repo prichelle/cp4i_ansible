@@ -1,0 +1,7 @@
+{
+    "entitlement_scope": "namespace",
+    "cp4i_namespace": "cp4i",
+    "operator_scope": "cluster",
+    "entitlement_key": "<your CP4I entitlement key here>",
+    "storage_class": "ocs-storagecluster-cephfs"
+}
