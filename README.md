@@ -53,10 +53,10 @@ The success message gives you :
 The following table describes the values that could be used in `config.json` file.
 
 | name | description | sample value |
-| ---- | ----------- | ------------ |
+| ---- | ----------- | ------------ |  
 | entitlement_scope | Define if the CP4I entitlment key is global to a cluster or of it is restrictred to a namespace. In the case of namespace, the targeted namespace is given in `cp4i_namespace` parameter.  | `namespace` or `cluster` |
 | cp4i_namespace | The target namespace used  during the installation. If operators have namespace scope, they will be deployed here. This namespace is also used to deploye the Integration Plafform navigator instance.  | `cp4i` |
-| operator_scope |  | `namespace` or `cluster` |
+| operator_scope | Define if the CP4I operators have a global scope( cluster) or are limited to a namespace | `namespace` or `cluster` |
 | entitlement_key | The value of your entitlment key. You could get it at [myibm.ibm.com](https://myibm.ibm.com).  | |
 | storage_class | The storage class that will be used by the IBM Cloud Pak foundational services. | ocs-storagecluster-cephfs | 
 
