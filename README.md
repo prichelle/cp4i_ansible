@@ -21,7 +21,7 @@ The script has been tested with CP4I v2021.2 on OCP 4.7 with OCS 4.7.
 ## Installation
 1. Clone this git repository
    ``` 
-   git clone  
+   git clone git@github.com:jtarte/cp4i_install_ansible.git
    ``` 
 2. Go inside the created directory
    ```
