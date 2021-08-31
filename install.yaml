@@ -5,7 +5,6 @@
     key_scope: "{{ config | json_query('entitlement_scope') }}"
     ns:  "{{ config | json_query('cp4i_namespace') }}"
     operator_scope: "{{ config | json_query('operator_scope') }}"
-    entitlement_key: "{{ config | json_query('entitlement_key') }}"
     sc: "{{ config | json_query('storage_class') }}"
     operators_list: "{{ config | json_query('operators_list') }}"
   tasks:
@@ -116,6 +115,10 @@
       ignore_errors: yes
     
     # create the entitlment secret if the entitlment scope is namespace
+    - name: get entitlment key
+      set_fact: entitlement_key="{{ config | json_query('entitlement_key') }}"
+      when: key_scope=='namespace'
+    
     - name: Create namespace secret
       shell: oc create secret docker-registry ibm-entitlement-key --docker-username=cp --docker-password={{entitlement_key}} --docker-server=cp.icr.io --namespace={{ns}}
       when: key_scope=='namespace'
