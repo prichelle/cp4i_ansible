@@ -7,6 +7,7 @@
     operator_scope: "{{ config | json_query('operator_scope') }}"
     entitlement_key: "{{ config | json_query('entitlement_key') }}"
     sc: "{{ config | json_query('storage_class') }}"
+    operators_list: "{{ config | json_query('operators_list') }}"
   tasks:
     # Show the starting message
     - name: Info
@@ -71,10 +72,36 @@
       ansible.builtin.template:
         src: ./templates/subscription.j2
         dest: ./tmp/subscription.yaml
+      when: operators_list == "all"
+
+    - name: Template Platform navigator operator subscriptions
+      ansible.builtin.template:
+        src: ./templates/navigator-subscription.j2
+        dest: ./tmp/navigator-subscription.yaml
+      when: operators_list != "all"
+
+    - name: Template operators subscriptions
+      ansible.builtin.template:
+        src: ./templates/{{item}}-subscription.j2
+        dest: ./tmp/{{item}}-subscription.yaml
+      when: operators_list != "all"
+      with_items: 
+        - "{{ operators_list }}"
     
     - name: CP4I operator subscription
       shell: oc apply -f ./tmp/subscription.yaml
+      when: operator_scope == "all"
 
+    - name: CP4I Platfrom Navigator operator subscription
+      shell: oc apply -f ./tmp/navigator-subscription.yaml
+      when: operators_list != "all"
+
+    - name: CP4I Platfrom Navigator operator subscription
+      shell: oc apply -f ./tmp/{{item}}-subscription.yaml
+      when: operators_list != "all"
+      with_items: 
+        - "{{ operators_list }}"
+    
     # Wait that all operators are installed
     - name: Sleep for 180 seconds and continue with play
       wait_for:

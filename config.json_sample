@@ -3,5 +3,7 @@
     "cp4i_namespace": "cp4i",
     "operator_scope": "cluster",
     "entitlement_key": "<your CP4I entitlement key here>",
-    "storage_class": "ocs-storagecluster-cephfs"
+    "storage_class": "ocs-storagecluster-cephfs",
+    "operators_list": "all"
+}
 }
