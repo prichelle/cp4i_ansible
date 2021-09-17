@@ -89,7 +89,7 @@
     
     - name: CP4I operator subscription
       shell: oc apply -f ./tmp/subscription.yaml
-      when: operator_scope == "all"
+      when: operators_list== "all"
 
     - name: CP4I Platfrom Navigator operator subscription
       shell: oc apply -f ./tmp/navigator-subscription.yaml
