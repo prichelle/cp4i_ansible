@@ -9,6 +9,11 @@ The installation script includes the following steps:
 * Create the entitlment secret in the target namespace if the entitlment key should be managed at namespace level. For cluster level, refer to CP4I knowloedge center and apply it before to launch the script. 
 * Create an instance of CP4I Platform Navigator. This deployment will generate the deployment of IBM Cloud Pak foundational Services and IBM Automation foundation (Integration Cartridge).  
 
+The version of the script present in the master branch is aligned with v2021.3.
+Other branches, present in this git repo, provides support of previous version
+
+
+
 ## Prerequisites
 
 * Ansible runtime on the environment where the script will be ran. 
@@ -16,7 +21,7 @@ The installation script includes the following steps:
 * Storage provider that will be used by CP4I installed on OCP. 
 * An active OCP cli session (`oc login`) with an user having `cluster-admin` privileges.
 
-The script has been tested with CP4I v2021.2 on OCP 4.7 with OCS 4.7. 
+The script has been tested with CP4I v2021.3 on OCP 4.7 with OCS 4.7. 
 
 ## Installation
 1. Clone this git repository
