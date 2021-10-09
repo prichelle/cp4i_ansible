@@ -64,7 +64,7 @@ The following table describes the values that could be used in `config.json` fil
 | operator_scope | Define if the CP4I operators have a global scope( cluster) or are limited to a namespace | `namespace` or `cluster` |
 | entitlement_key | The value of your entitlment key. You could get it at [myibm.ibm.com](https://myibm.ibm.com).  | |
 | storage_class | The storage class that will be used by the IBM Cloud Pak foundational services. | ocs-storagecluster-cephfs | 
-| operators_list | Define if all the CP4I operators are deployed or only a set of selected operators. For all operators, the value should be set at `all`. For a selection of operators, you should provide a tab with the operators list. The accepted values are <ul><li>`api-connect`</li><li>`app-connect`</li><li>`aspera`</li><li>`asset-repository`</li><li>`datapower-gateway`</li><li>`mq`</li><li>`operation-dashboard`</li></ul> | `all` or `["app-connect","mq"]`
+| operators_list | Define if all the CP4I operators are deployed or only a set of selected operators. For all operators, the value should be set at `all`. For a selection of operators, you should provide a tab with the operators list. The accepted values are <ul><li>`api-connect`</li><li>`app-connect`</li><li>`aspera`</li><li>`asset-repository`</li><li>`datapower-gateway`</li><li>`eventstreams`</li><li>`mq`</li><li>`operation-dashboard`</li></ul> | `all` or `["app-connect","mq"]`
 
 
 ## Uninstallation
