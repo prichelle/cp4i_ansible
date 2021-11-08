@@ -1,11 +1,11 @@
 #! /bin/bash
 
-# Update the gloval pull secret of a OCP cluster  with IBM container entitlement.
+# Update the global pull secret of a OCP cluster  with IBM container entitlement.
 # Author :  Jérôme Tarte, jerome.tarte@fr.ibm.com
 # license:  Apache License 2.0
 
 # usage :  ./entitlement.sh <your IBM entitlement key>
-# Before the run the script, you should be authenticated on the target OCP cluster. 
+# Before the run the script, you should be authenticated on the target OCP cluster.
 
 
 #get the docker auth info
