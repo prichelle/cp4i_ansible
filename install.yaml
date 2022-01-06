@@ -95,7 +95,7 @@
       shell: oc apply -f ./tmp/navigator-subscription.yaml
       when: operators_list != "all"
 
-    - name: CP4I Platfrom Navigator operator subscription
+    - name: CP4I selected operators subscription
       shell: oc apply -f ./tmp/{{item}}-subscription.yaml
       when: operators_list != "all"
       with_items: 
@@ -145,7 +145,7 @@
       delay : 60
       ignore_errors: yes
 
-    # Wait the completion of Cartridge deployment
+    # Wait the completion of Platform Navigation deployment
     - name: Waiting Integration platform navigator is ready
       shell: "oc get platformnavigator -n {{ns}} --no-headers |  awk '{print $4}'"
       register: result 
