@@ -1,0 +1,193 @@
+---
+- name: Install Operators
+  hosts: localhost
+  vars:
+    config: "{{ lookup('file', '../config/config.json') }}"
+    operators_list: "{{ config | json_query('operators_list') }}"  
+
+  tasks:
+    - name: Install local pre-requisites
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../common/prerequisites.yaml"
+
+    - name: Define subscription template path 
+      set_fact:
+         sub_template_path : "{{ playbook_dir }}/templates/subscription.j2"
+
+    - name: check catalog source
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: CatalogSource
+        namespace: openshift-marketplace
+        name: ibm-operator-catalog
+      register: ibm_catalog_src
+      failed_when: false
+
+    - name: Create IBM catalog source
+      kubernetes.core.k8s:
+        validate_certs: false
+        state: present
+        src: "{{ playbook_dir }}/templates/catalog-source-ibm.yaml"
+      when: ibm_catalog_src.resources | length == 0
+
+    - name: Wait for the IBM catalog source to be ready
+      kubernetes.core.k8s_info:
+        validate_certs: false
+        api_version: v1
+        kind: Pod
+        label_selectors:
+          - "olm.catalogSource=ibm-operator-catalog"
+        namespace: openshift-marketplace
+      register: pod_list
+      until: pod_list|json_query('resources[*].status.conditions[1].status')|unique == ["True"]
+      retries: 20
+      delay: 10
+
+    - name: CERTM - retrieve cert mgr pod info
+      kubernetes.core.k8s_info:
+        validate_certs: false
+        api_version: v1
+        kind: Pod
+        label_selectors:
+          - "name=cert-manager-operator"
+        namespace: cert-manager-operator
+      register: cert_mgr_pod
+      failed_when: false
+
+    - name: CERTM - check namespace
+      kubernetes.core.k8s_info:
+        name: cert-manager-operator
+        api_version: v1
+        kind: Namespace
+      register: certm_ns
+      failed_when: false
+
+    - name: CERTM - create namespace
+      kubernetes.core.k8s:
+        name: cert-manager-operator
+        api_version: v1
+        kind: Namespace
+        state: present
+      when: certm_ns.resources | length == 0
+
+    - name: CERTM - Create operator group
+      kubernetes.core.k8s:
+        validate_certs: false
+        state: present
+        src: "{{ playbook_dir }}/templates/certm-og.yaml"
+
+    - name: CERTM - Create subscription
+      kubernetes.core.k8s:
+        validate_certs: false
+        state: present
+        src: "{{ playbook_dir }}/templates/certm-sub.yaml"
+
+    - name: Wait for the cert manager operator to be ready
+      kubernetes.core.k8s_info:
+        validate_certs: false
+        api_version: v1
+        kind: Pod
+        label_selectors:
+          - "name=cert-manager-operator"
+        namespace: cert-manager-operator
+      register: pod_list
+      until: pod_list | json_query('resources[*].status.conditions[1].status') | unique == ["True"]
+      retries: 50
+      delay: 20
+
+    - name: CMS - check namespace
+      kubernetes.core.k8s_info:
+        name: ibm-common-services
+        api_version: v1
+        kind: Namespace
+      register: cms_ns
+      failed_when: false
+
+    - name: CMS - create namespace
+      kubernetes.core.k8s:
+        name: ibm-common-services
+        api_version: v1
+        kind: Namespace
+        state: present
+      when: cms_ns.resources | length == 0
+    
+    - name: CMS - retrieve subscription information
+      set_fact:
+        item: "{{ config | json_query('common_service') }}"
+
+    - name: CMS - create subscription
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', playbook_dir + '/templates/subs-cms.j2', vars=item) }}"
+
+    - name: CMS - Wait for common service pod to be ready
+      kubernetes.core.k8s_info:
+        validate_certs: false
+        api_version: v1
+        kind: Pod
+        label_selectors:
+          - "name=ibm-common-service-operator"
+        namespace: openshift-operators
+      register: pod_list
+      until: pod_list | json_query('resources[*].status.conditions[1].status') | unique == ["True"]
+      retries: 50
+      delay: 20
+
+    - name: CMS - Wait for lifecyle manager to be available
+      kubernetes.core.k8s_info:
+        validate_certs: false
+        api_version: v1
+        kind: Pod
+        label_selectors:
+          - "name=operand-deployment-lifecycle-manager"
+        namespace: openshift-operators
+      register: pod_list
+      until: pod_list | json_query('resources[*].status.conditions[1].status') | unique == ["True"]
+      retries: 50
+      delay: 20
+
+    - name: PN - check PN po existence
+      kubernetes.core.k8s_info:
+        validate_certs: false
+        api_version: v1
+        kind: Pod
+        label_selectors:
+          - "name=ibm-integration-platform-navigator-operator"
+        namespace: openshift-operators
+      register: pn_op_pod
+      failed_when: false
+
+    - name: PN - update CMS license
+      kubernetes.core.k8s:
+        validate_certs: false
+        state: present
+        src: "{{ playbook_dir }}/templates/cms-license.yaml"
+
+    - name: PN - retrieve subscription information
+      set_fact:
+        item: "{{ config | json_query('platform_navigator') }}"
+
+    - name: PN - create subscription
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', playbook_dir + '/templates/subs-csv.j2', vars=item) }}"
+
+    - name: Wait for pn operator to be ready
+      kubernetes.core.k8s_info:
+        validate_certs: false
+        api_version: v1
+        kind: Pod
+        label_selectors:
+          - "name=ibm-integration-platform-navigator-operator"
+        namespace: openshift-operators
+      register: pod_list
+      until: pod_list | json_query('resources[*].status.conditions[1].status') | unique == ["True"]
+      retries: 50
+      delay: 20
+
+    - name: Creating cp4i capabilities operator
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', sub_template_path, vars=item) }}"
+      loop: "{{ operators_list }}"
+      loop_control:
+        label: "{{ item.name }}"

@@ -1,0 +1,11 @@
+apiVersion: integration.ibm.com/v1beta1
+kind: PlatformNavigator
+metadata:
+  name: cp4i-navigator
+  namespace: "{{cp4i_ns}}"
+spec:
+  license:
+    accept: true
+    license: "{{ cp4i_config.license }}"
+  replicas: 1
+  version: "{{ cp4i_config.version }}"

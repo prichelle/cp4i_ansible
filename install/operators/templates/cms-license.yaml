@@ -1,0 +1,11 @@
+apiVersion: operator.ibm.com/v3
+kind: CommonService
+metadata:
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+    kustomize.toolkit.fluxcd.io/ssa: merge
+  name: common-service
+  namespace: openshift-operators
+spec:
+  license:
+    accept: true

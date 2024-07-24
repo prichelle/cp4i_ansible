@@ -3,11 +3,13 @@ kind: CatalogSource
 metadata:
   name: ibm-operator-catalog
   namespace: openshift-marketplace
+  annotations:
+    olm.catalogImageTemplate: "icr.io/cpopen/ibm-operator-catalog:v{kube_major_version}.{kube_minor_version}"
 spec:
   displayName: IBM Operator Catalog
-  image: 'icr.io/cpopen/ibm-operator-catalog:latest'
   publisher: IBM
   sourceType: grpc
+  image: icr.io/cpopen/ibm-operator-catalog:latest
   updateStrategy:
     registryPoll:
       interval: 45m

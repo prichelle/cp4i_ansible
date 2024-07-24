@@ -17,6 +17,11 @@ Other branches, present in this git repo, provides support of previous version
 ## Prerequisites
 
 * Ansible runtime on the environment where the script will be ran. 
+
+ansible-galaxy collection install community.kubernetes
+ansible-galaxy collection install kubernetes.core
+ansible-galaxy collection install community.general
+
 * An exisiting OCP instance. 
 * Storage provider that will be used by CP4I installed on OCP. 
 * An active OCP cli session (`oc login`) with an user having `cluster-admin` privileges.
@@ -24,6 +29,13 @@ Other branches, present in this git repo, provides support of previous version
 The script has been tested with CP4I v2021.4 on OCP 4.7 with OCS 4.7. 
 
 ## Installation
+
+export ENT_KEY=eyJ0eXAiOiJKV1QiLCJhbGciO
+ansible-playbook install/instances/install.yaml -e ibm_entitlement_key=$ENT_KEY
+
+
+
+
 1. Clone this git repository
    ``` 
    git clone git@github.com:jtarte/cp4i_install_ansible.git
