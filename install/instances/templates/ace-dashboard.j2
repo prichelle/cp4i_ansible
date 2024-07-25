@@ -1,0 +1,41 @@
+apiVersion: appconnect.ibm.com/v1beta1
+kind: Dashboard
+metadata:
+  name: ace-dashboard
+  namespace: "{{ ace_cfg.namespace}}"
+spec:
+  authentication:
+    integrationKeycloak:
+      enabled: true
+  authorization:
+    integrationKeycloak:
+      enabled: true
+  displayMode: "{{ ace_cfg.dashboard.mode}}"
+  license:
+    accept: true
+    license: "{{ ace_cfg.license}}"
+    use: CloudPakForIntegrationNonProduction
+  pod:
+    containers:
+      content-server:
+        resources:
+          limits:
+            cpu: 1
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 50Mi
+      control-ui:
+        resources:
+          limits:
+            cpu: 1
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 125Mi
+  replicas: 1
+  storage:
+    class: "{{ storage_class.rwx }}"
+    size: 5Gi
+    type: persistent-claim
+  version: "{{ ace_cfg.version}}"

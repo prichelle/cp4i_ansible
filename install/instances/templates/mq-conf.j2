@@ -1,0 +1,15 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ mq_cfg.queuemanager.name}}-mqsc
+  namespace: "{{ mq_cfg.namespace}}"
+data:
+  {{ mq_cfg.queuemanager.name}}.mqsc: |
+    DEF QLOCAL(LQ.DEMO) REPLACE
+    DEF QLOCAL (DLQ)
+    ALTER QMGR DEADQ(DLQ)
+    DEF CHANNEL (CL.DEMO) CHLTYPE(SVRCONN) MCAUSER('mqm')
+    ALTER AUTHINFO(SYSTEM.DEFAULT.AUTHINFO.IDPWOS) AUTHTYPE(IDPWOS) CHCKCLNT(NONE) CHCKLOCL(NONE) 
+    SET CHLAUTH(*) TYPE(BLOCKUSER) USERLIST(*MQADMIN) ACTION(REMOVE)
+    REFRESH SECURITY TYPE(CONNAUTH) 
+    REFRESH SECURITY TYPE(AUTHSERV)

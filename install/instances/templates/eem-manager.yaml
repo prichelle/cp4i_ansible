@@ -1,0 +1,42 @@
+apiVersion: events.ibm.com/v1beta1
+kind: EventEndpointManagement
+metadata:
+  name: "{{ eem_cfg.manager.name }}"
+spec:
+  license:
+    accept: true
+    license: "{{ eem_cfg.license }}"
+    metric: VIRTUAL_PROCESSOR_CORE
+    use: CloudPakForIntegrationNonProduction
+  manager:
+    authConfig:
+      authType: LOCAL
+    storage:
+{% if not eem_ephemeral %}
+      type: persistent-claim
+      size: 250M
+      storageClassName: "{{ storage_class.rwo }}"
+{% else %}
+      type: ephemeral
+{% endif %}
+{% if apic_installed %}
+    apic:
+      clientSubjectDN: CN=ingress-ca
+      jwks:
+        endpoint: 'https://apic_api_platform_route.resources[0].spec.host'
+{% endif %}
+    template:
+      pod:
+        spec:
+          containers:
+            - name: manager
+#              envFrom:
+#                - configMapRef:
+#                    name: event-automation-welcome-urls
+              resources:
+                requests:
+                  cpu: '0.25'
+                  memory: 256Mi
+                limits:
+                  cpu: '0.5'
+                  memory: 512Mi

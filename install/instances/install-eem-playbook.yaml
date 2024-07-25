@@ -1,0 +1,117 @@
+---
+
+- name: laod config
+  ansible.builtin.include_vars:
+    file:  '../config/config.json'
+    name: config
+
+- name: load eem config
+  set_fact:
+    eem_cfg: "{{ config | json_query('instances.eem') }}"
+
+- name: load storage class
+  set_fact:
+    storage_class: "{{ config | json_query('storage_class') }}"
+
+- name: Print the es config
+  debug:
+    msg: "The config is: {{ eem_cfg }}"
+
+- name: EEM - get sub
+  kubernetes.core.k8s_info:
+    validate_certs: false
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    name: ibm-eventendpointmanagement
+    namespace: openshift-operators
+  register: eem_sub 
+  failed_when: false
+
+- name: EEM - Check sub 
+  assert:
+    that: eem_sub.resources | length > 0
+    fail_msg: "EEM subscription is not present"
+    success_msg: "EEM subscription is present"
+
+- name: Create namespace for EEM
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/setup-namespace-playbook.yaml"
+  vars:
+    namespace: "{{ eem_cfg.namespace }}"
+
+- name: EEM - check APIC installation
+  set_fact:
+    apic_installed: false
+
+- name: EEM - retrieve persistence
+  set_fact:
+    eem_ephemeral: "{{ eem_cfg.manager.ephemeral }}"
+
+- name: EEM - Create EEM Cluster RENDER
+  debug:
+    msg: "{{ lookup('template', playbook_dir + '/templates/eem-manager.yaml') }}"
+
+- name: gen eem mgr
+  ansible.builtin.template:
+    src: ./templates/eem-manager.yaml
+    dest: ./tmp/eem-manager.yaml
+
+- name: EEM - Create Event Endpoint Management manager
+  kubernetes.core.k8s:
+    validate_certs: false
+    state: present
+    namespace: "{{ eem_cfg.namespace }}"
+    template: "./templates/eem-manager.yaml"
+    wait: true
+    wait_condition:
+      status: true
+      type: Ready
+    wait_timeout: 1200
+
+- name: EEM - retrieve gateway config
+  set_fact:
+    eem_egw_install: "{{ eem_cfg.gateway.install }}"
+
+- name: EEM - Get route for use by Event Gateway
+  kubernetes.core.k8s_info:
+    validate_certs: false
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: "{{ eem_cfg.manager.name }}-ibm-eem-gateway"
+    namespace: "{{ eem_cfg.namespace }}"
+  register: egw_route
+  when: eem_egw_install
+
+- name: EEM - Create Event Endpoint Management Event Gateway
+  vars:
+    eem_gateway_route: "https://{{ egw_route.resources[0].spec.host }}"
+  kubernetes.core.k8s:
+    validate_certs: false
+    state: present
+    namespace: "{{ eem_cfg.namespace }}"
+    template: "./templates/eem-egw.yaml"
+    wait: true
+    wait_condition:
+      status: true
+      type: Ready
+    wait_timeout: 1200
+  when: eem_egw_install
+
+- name: EEM - Add demo users to the auth config
+  kubernetes.core.k8s:
+    state: patched
+    kind: Secret
+    name: "{{ eem_cfg.manager.name }}-ibm-eem-user-credentials"
+    namespace: "{{ eem_cfg.namespace }}"
+    definition:
+      data:
+        user-credentials.json: "{{ lookup('template', './templates/eem-users.json') | b64encode }}"
+
+- name: EEM - Add demo roles to the auth config
+  kubernetes.core.k8s:
+    state: patched
+    kind: Secret
+    name: "{{ eem_cfg.manager.name }}-ibm-eem-user-roles"
+    namespace: "{{ eem_cfg.namespace }}"
+    definition:
+      data:
+        user-mapping.json: "{{ lookup('template', './templates/eem-roles.json') | b64encode }}"

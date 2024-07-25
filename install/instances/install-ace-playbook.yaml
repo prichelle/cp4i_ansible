@@ -1,0 +1,73 @@
+---
+
+- name: laod config
+  ansible.builtin.include_vars:
+    file:  '../config/config.json'
+    name: config
+
+- name: laod ace config
+  set_fact:
+    ace_cfg: "{{ config | json_query('instances.ace') }}"
+
+- name: laod storage class
+  set_fact:
+    storage_class: "{{ config | json_query('storage_class') }}"
+
+- name: Print the ACE config
+  debug:
+    msg: "The confg is: {{ ace_cfg }}"
+
+- name: ACE - get sub
+  kubernetes.core.k8s_info:
+    validate_certs: false
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    name: ibm-appconnect
+    namespace: openshift-operators
+  register: ace_sub 
+  failed_when: false
+
+- name: ACE - Check sub 
+  assert:
+    that: ace_sub.resources | length > 0
+    fail_msg: "ACE susbcription is not present"
+    success_msg: "ACE susbcription is present"
+
+- name: Create namespace for ACE
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/setup-namespace-playbook.yaml"
+  vars:
+    namespace: "{{ ace_cfg.namespace }}"
+
+- name: Print the variable value
+  debug:
+    msg: "The value of my_variable is: {{ ace_cfg }}"
+
+- name: ACE - check dash installation
+  set_fact:
+    ace_install: "{{ ace_cfg.dashboard.install }}"
+
+- name: ACE - Create DASH RENDER
+  debug:
+    msg: "{{ lookup('template', playbook_dir + '/templates/ace-dashboard.j2') }}"
+  when: ace_install
+
+- name: ACE - Create DASH 
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', playbook_dir + '/templates/ace-dashboard.j2') }}"
+  when: ace_install
+
+- name: ACE - check designer installation
+  set_fact:
+    ace_install: "{{ ace_cfg.designer.install }}"
+
+- name: ACE - Create DES RENDER
+  debug:
+    msg: "{{ lookup('template', playbook_dir + '/templates/ace-designer.j2') }}"
+  when: ace_install
+
+- name: ACE - Create DES 
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', playbook_dir + '/templates/ace-designer.j2') }}"
+  when: ace_install

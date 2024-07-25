@@ -1,0 +1,91 @@
+---
+
+- name: laod config
+  ansible.builtin.include_vars:
+    file:  '../config/config.json'
+    name: config
+
+- name: laod es config
+  set_fact:
+    es_cfg: "{{ config | json_query('instances.es') }}"
+
+- name: laod storage class
+  set_fact:
+    storage_class: "{{ config | json_query('storage_class') }}"
+
+- name: Print the es config
+  debug:
+    msg: "The config is: {{ es_cfg }}"
+
+- name: ES - get sub
+  kubernetes.core.k8s_info:
+    validate_certs: false
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    name: ibm-eventstreams
+    namespace: openshift-operators
+  register: es_sub 
+  failed_when: false
+
+- name: ES - Check sub 
+  assert:
+    that: es_sub.resources | length > 0
+    fail_msg: "ES subscription is not present"
+    success_msg: "ES subscription is present"
+
+- name: Create namespace for ES
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/setup-namespace-playbook.yaml"
+  vars:
+    namespace: "{{ es_cfg.namespace }}"
+
+- name: ES - retrieve persistence
+  set_fact:
+    es_ephemeral: "{{ es_cfg.cluster.ephemeral }}"
+
+- name: ES - Create ES Cluster RENDER
+  debug:
+    msg: "{{ lookup('template', playbook_dir + '/templates/es-cluster.j2') }}"
+
+- name: ES - Create ES Cluster
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', playbook_dir + '/templates/es-cluster.j2') }}"
+
+- name: ES - Create Kafka Connect destination topics
+  kubernetes.core.k8s:
+    validate_certs: false
+    state: present
+    namespace: "{{ es_cfg.namespace }}"
+    template: "{{ playbook_dir }}/templates/es-topics.yaml"
+
+- name: ES - Create es admin user
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', playbook_dir + '/templates/es-admin-user.yaml') }}"
+
+- name: ES - retrieve datagen info
+  set_fact:
+    es_datagen: "{{ es_cfg.install_datagen }}"
+
+- name: gen kconnect
+  ansible.builtin.template:
+    src: ./templates/es-kconnect.yaml
+    dest: ./tmp/es-kconnect.yaml
+
+- name: ES - Create kconnect
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', playbook_dir + '/templates/es-kconnect.yaml') }}"
+  when: es_datagen
+
+- name: Check for image-registry needed for building Kafka Connect container
+  kubernetes.core.k8s_info:
+    validate_certs: false
+    api_version: v1
+    kind: Pod
+    label_selectors:
+      - "docker-registry=default"
+    namespace: openshift-image-registry
+  register: image_registry_
+  failed_when: image_registry_.resources | length == 0
+  when: es_datagen

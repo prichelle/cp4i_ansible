@@ -2,7 +2,7 @@ apiVersion: integration.ibm.com/v1beta1
 kind: PlatformNavigator
 metadata:
   name: cp4i-navigator
-  namespace: "{{cp4i_ns}}"
+  namespace: "{{cp4i_config.namespace}}"
 spec:
   license:
     accept: true

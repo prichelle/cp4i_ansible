@@ -1,0 +1,70 @@
+apiVersion: eventstreams.ibm.com/v1beta2
+kind: EventStreams
+metadata:
+  name: "{{ es_cfg.cluster.name}}"
+  namespace: "{{ es_cfg.namespace}}"
+spec:
+  adminApi: {}
+  adminUI:
+    authentication:
+      - type: "{{ es_cfg.cluster.authentication}}"
+#    env:
+#      - name: WELCOME_URL_EVENT_STREAMS
+#        value: welcome_url_eventstreams
+#      - name: WELCOME_URL_EVENT_ENDPOINT_MANAGEMENT
+#        value: welcome_url_eventendpointmanagement 
+#      - name: WELCOME_URL_EVENT_PROCESSING
+#        value: welcome_url_eventprocessing 
+  apicurioRegistry: {}
+  license:
+    accept: true
+    license: "{{ es_cfg.license}}"
+    use: CloudPakForIntegrationNonProduction
+  strimziOverrides:
+    entityOperator:
+      topicOperator: {}
+      userOperator: {}
+    kafka:
+      authorization:
+        type: simple
+      config:
+        auto.create.topics.enable: true
+      listeners:
+        - name: authsslsvc
+          authentication:
+            type: scram-sha-512
+          port: 9095
+          tls: true
+          type: internal
+        - authentication:
+            type: tls
+          name: tls
+          port: 9093
+          tls: true
+          type: internal
+        - name: external
+          authentication:
+            type: scram-sha-512
+          port: 9096
+          tls: true
+          type: route
+      replicas: 3
+      storage:
+{% if not es_ephemeral %}
+        type: persistent-claim
+        size: 50Gi
+        class: {{ storage_class.rwo }}
+{% else %}
+        type: ephemeral
+{% endif %}
+    zookeeper:
+      replicas: 3
+      storage:
+{% if not es_ephemeral %}
+        type: persistent-claim
+        size: 3Gi
+        class: {{ storage_class.rwo }}
+{% else %}
+        type: ephemeral
+{% endif %}
+  version: "{{ es_cfg.version}}"

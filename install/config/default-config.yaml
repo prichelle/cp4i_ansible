@@ -6,19 +6,5 @@ metadata:
 data:
   STORAGE_RWO: "ocs-storagecluster-ceph-rbd"
   STORAGE_RWX: "ocs-storagecluster-cephfs"
-  PN_CSV: "ibm-integration-platform-navigator.v7.3.0"
-  PN_CHANNEL: "v7.3-sc2"
-  CMS_CHANNEL: "v4.6"
-  CMS_CSV: "ibm-common-service-operator.v4.6.4"
-  CP4I_LICENSE: "L-JTPV-KYG8TF"
-  ACE_LICENSE: "L-XRNH-47FJAW"
-  CP4I_VERSION: "16.1.0"
-  MQ_VERSION: "9.4.0.0-r1"
-  MQ_CHANNEL: "v3.2-sc2"
-  APIC_CHANNEL: "v5.2-sc2"
-  APIC_VERSION: "10.0.8.0"
-  APIC_LICENSE: "L-DZZQ-MGVN8V"
-  ACE_VERSION: "12.0.12.3-r1"
-  ACE_CHANNEL: "v12.1"
-  ES_CHANNEL: "v3.4"
-  EEM_CHANNEL: "v11.2"
+
+

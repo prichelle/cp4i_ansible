@@ -8,11 +8,26 @@
     state: present
     validate_certs: false
 
+- name: check entitlement key
+  kubernetes.core.k8s_info:
+    validate_certs: false
+    api_version: v1
+    kind: Secret
+    name: ibm-entitlement-key
+    namespace: "{{ namespace }}"
+  register: sec_key 
+  failed_when: false
+
+- name: key debug
+  debug:
+    msg: "key info {{sec_key}}"
+
 - name: Create the Entitled Registry pull secret
   ansible.builtin.set_fact:
     entitled_registry_secret: "{{ [ lookup('template', './templates/docker-pull-secret.yaml') | ansible.builtin.from_yaml ] }}"
   vars:
     docker_secret_password: "{{ ibm_entitlement_key }}"
+  when: sec_key.resources | length == 0
 
 - name: Setup Entitled Registry key
   kubernetes.core.k8s:
@@ -26,3 +41,4 @@
       data:
         .dockerconfigjson: "{{ entitled_registry_secret[0] | to_json | string | b64encode }}"
     validate_certs: false
+  when: sec_key.resources | length == 0

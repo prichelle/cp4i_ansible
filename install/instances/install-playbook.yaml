@@ -1,0 +1,106 @@
+---
+- hosts: localhost
+  vars:
+    config: "{{ lookup('file', '../config/config.json') }}"
+    cp4i_ns: "{{ config | json_query('cp4i_namespace') }}"  
+    ibm_entitlement_key: "{{ undef(hint='Provide an Entitled Registry key') }}"
+    cp4i_config: "{{ config | json_query('instances.pn') }}"
+    inst_cfg: "{{ config | json_query('instances') }}"
+  tasks:
+    - name: Install local pre-requisites
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../common/prerequisites.yaml"
+
+    # - name: get PN operator po
+    #   kubernetes.core.k8s_info:
+    #     validate_certs: false
+    #     api_version: v1
+    #     kind: Pod
+    #     label_selectors:
+    #       - "name=ibm-integration-platform-navigator-operator"
+    #     namespace: openshift-operators
+    #   register: pn_po 
+    #   failed_when: false
+    
+    # - name: Check status of PN 
+    #   assert:
+    #     that: pn_po.resources | length > 0
+    #     fail_msg: "CP4I operator is not present"
+    #     success_msg: "CP4I operator is present"
+
+    # - name: Create namespace for PN
+    #   ansible.builtin.include_tasks: "{{ playbook_dir }}/setup-namespace-playbook.yaml"
+    #   vars:
+    #     namespace: "{{ cp4i_ns }}"
+
+    # - name: Print the variable value
+    #   debug:
+    #     msg: "The value of my_variable is: {{ cp4i_config }}"
+
+    # - name: Render and display the template
+    #   debug:
+    #     msg: "{{ lookup('template', playbook_dir + '/templates/pn-cr.j2') }}"
+
+    # - name: PN - create CR
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     definition: "{{ lookup('template', playbook_dir + '/templates/pn-cr.j2') }}"
+
+    # - name: ACE - check installation
+    #   set_fact:
+    #     ace_install: "{{ inst_cfg.ace.install }}"
+
+    # - name: ACE - config
+    #   debug:
+    #     msg: "ACE installation {{ ace_install }} config : {{ inst_cfg.ace }}"
+
+    # - name: ACE - setup
+    #   ansible.builtin.include_tasks: "{{ playbook_dir }}/install-ace-playbook.yaml"
+    #   when: ace_install
+
+    # - name: MQ - check installation
+    #   set_fact:
+    #     mq_install: "{{ inst_cfg.mq.install }}"
+
+    # - name: MQ - config
+    #   debug:
+    #     msg: "MQ installation {{ mq_install }} config : {{ inst_cfg.mq }}"
+
+    # - name: MQ - setup
+    #   ansible.builtin.include_tasks: "{{ playbook_dir }}/install-mq-playbook.yaml"
+    #   when: mq_install
+
+    # - name: APIC - check installation
+    #   set_fact:
+    #     apic_install: "{{ inst_cfg.apic.install }}"
+
+    # - name: APIC - config
+    #   debug:
+    #     msg: "APIC installation {{ apic_install }} config : {{ inst_cfg.apic }}"
+
+    # - name: APIC - setup
+    #   ansible.builtin.include_tasks: "{{ playbook_dir }}/install-apic-playbook.yaml"
+    #   when: apic_install
+
+    # - name: ES - check installation
+    #   set_fact:
+    #     es_install: "{{ inst_cfg.es.install }}"
+
+    # - name: ES - config
+    #   debug:
+    #     msg: "ES installation {{ es_install }} config : {{ inst_cfg.es }}"
+
+    # - name: ES - setup
+    #   ansible.builtin.include_tasks: "{{ playbook_dir }}/install-es-playbook.yaml"
+    #   when: es_install
+
+    - name: EEM - check installation
+      set_fact:
+        eem_install: "{{ inst_cfg.eem.install }}"
+
+    - name: EEM - config
+      debug:
+        msg: "ES installation {{ eem_install }} config : {{ inst_cfg.eem }}"
+
+    - name: EEM - setup
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/install-eem-playbook.yaml"
+      when: eem_install

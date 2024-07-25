@@ -1,0 +1,35 @@
+apiVersion: mq.ibm.com/v1beta1
+kind: QueueManager
+metadata:
+  annotations:
+    com.ibm.mq/write-defaults-spec: 'false'
+  name: "{{ mq_cfg.queuemanager.name}}"
+  namespace: "{{ mq_cfg.namespace}}"
+spec:
+  license:
+    accept: true
+    license: "{{ mq_cfg.license}}"
+    use: NonProduction
+  queueManager:
+    name: "{{ mq_cfg.queuemanager.name}}"
+    mqsc:
+      - configMap:
+          items:
+            - {{ mq_cfg.queuemanager.name}}.mqsc
+          name: {{ mq_cfg.queuemanager.name}}-mqsc
+    resources:
+      limits:
+        cpu: 500m
+      requests:
+        cpu: 500m
+    storage:
+      queueManager:
+        type: ephemeral
+  version: "{{ mq_cfg.version }}"
+  web:
+    console:
+      authentication:
+        provider: integration-keycloak
+      authorization:
+        provider: integration-keycloak
+    enabled: true

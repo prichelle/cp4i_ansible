@@ -1,0 +1,27 @@
+apiVersion: events.ibm.com/v1beta1
+kind: EventGateway
+metadata:
+  name: "{{ eem_cfg.gateway.name }}"
+spec:
+  managerEndpoint: "{{ eem_gateway_route }}"
+  gatewayGroupName: gateway-group
+  gatewayID: gateway-1
+  license:
+    accept: true
+    license: "{{ eem_cfg.license }}"
+    metric: VIRTUAL_PROCESSOR_CORE
+    use: CloudPakForIntegrationNonProduction
+  template:
+    pod:
+      spec:
+        containers:
+          - name: egw
+            resources:
+              requests:
+                cpu: '0.5'
+                memory: 512Mi
+              limits:
+                cpu: '1'
+                memory: 1Gi
+  tls:
+    caSecretName: {{ eem_cfg.manager.name }}-ibm-eem-manager-ca

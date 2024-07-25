@@ -1,0 +1,49 @@
+apiVersion: mq.ibm.com/v1beta1
+kind: QueueManager
+metadata:
+  name: "{{ mq_cfg.queuemanager.name}}"
+  namespace: "{{ mq_cfg.namespace}}"
+spec:
+  license:
+    accept: true
+    license: "{{ mq_cfg.license}}"
+    metric: VirtualProcessorCore
+    use: NonProduction
+  queueManager:
+    metrics:
+      enabled: true
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    route:
+      enabled: true
+    name: "{{ mq_cfg.queuemanager.name}}"
+    mqsc:
+      - configMap:
+          items:
+            - {{ mq_cfg.queuemanager.name}}.mqsc
+          name: {{ mq_cfg.queuemanager.name}}-mqsc
+    logFormat: Basic
+    availability:
+      type: "{{ mq_cfg.queuemanager.ha_type}}"
+      updateStrategy: RollingUpdate
+    storage:
+      defaultClass: "{{ storage_class.rwo }}"
+      persistedData:
+        enabled: false
+      queueManager:
+        class: "{{ storage_class.rwo }}"
+        size: 2Gi
+        type: persistent-claim
+  version: "{{ mq_cfg.version }}"
+  web:
+    console:
+      authentication:
+        provider: integration-keycloak
+      authorization:
+        provider: integration-keycloak
+    enabled: true

@@ -1,0 +1,30 @@
+apiVersion: apiconnect.ibm.com/v1beta1
+kind: APIConnectCluster
+metadata:
+  annotations:
+    apiconnect-operator/backups-not-configured: 'true'
+  labels:
+    app.kubernetes.io/instance: apiconnect
+    app.kubernetes.io/managed-by: ibm-apiconnect
+    app.kubernetes.io/name: {{ apic_cfg.cluster.name}}
+  name: "{{ apic_cfg.cluster.name}}"
+  namespace: "{{ apic_cfg.namespace}}"
+spec:
+  license:
+    accept: true
+    license: "{{ apic_cfg.license}}"
+    metric: VIRTUAL_PROCESSOR_CORE
+    use: nonproduction
+  management:
+    governance:
+      enabled: {{ apic_cfg.cluster.governance }}
+    testAndMonitor:
+      autoTestEnabled: {{ apic_cfg.cluster.testandmonitor }}
+      enabled: {{ apic_cfg.cluster.testandmonitor }}
+  imagePullSecrets:
+    - ibm-entitlement-key
+  gateway:
+    webGUIManagementEnabled: {{ apic_cfg.cluster.gatewayui }}
+  storageClassName: "{{ storage_class.rwo }}"
+  profile: "{{ apic_cfg.cluster.profile }}"
+  version: "{{ apic_cfg.version }}"

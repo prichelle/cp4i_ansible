@@ -1,0 +1,74 @@
+---
+
+- name: laod config
+  ansible.builtin.include_vars:
+    file:  '../config/config.json'
+    name: config
+
+- name: laod mq config
+  set_fact:
+    mq_cfg: "{{ config | json_query('instances.mq') }}"
+
+- name: laod storage class
+  set_fact:
+    storage_class: "{{ config | json_query('storage_class') }}"
+
+- name: Print the MQ config
+  debug:
+    msg: "The config is: {{ mq_cfg }}"
+
+- name: MQ - get sub
+  kubernetes.core.k8s_info:
+    validate_certs: false
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    name: ibm-mq
+    namespace: openshift-operators
+  register: mq_sub 
+  failed_when: false
+
+- name: MQ - Check sub 
+  assert:
+    that: mq_sub.resources | length > 0
+    fail_msg: "MQ subscription is not present"
+    success_msg: "MQ subscription is present"
+
+- name: Create namespace for MQ
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/setup-namespace-playbook.yaml"
+  vars:
+    namespace: "{{ mq_cfg.namespace }}"
+
+- name: MQ - Create queuemanager config RENDER
+  debug:
+    msg: "{{ lookup('template', playbook_dir + '/templates/mq-conf.j2') }}"
+
+- name: MQ -  Create  queuemanager config
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', playbook_dir + '/templates/mq-conf.j2') }}"
+
+- name: MQ - check persistence
+  set_fact:
+    mq_ephemeral: "{{ mq_cfg.queuemanager.ephemeral }}"
+
+- name: MQ - Create persistent QueueManager RENDER
+  debug:
+    msg: "{{ lookup('template', playbook_dir + '/templates/mq-queuemanager.j2') }}"
+  when: not mq_ephemeral
+
+- name: MQ -  Create persistent QueueManager 
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', playbook_dir + '/templates/mq-queuemanager.j2') }}"
+  when: not mq_ephemeral
+
+- name: MQ - Create ephemeral QueueManager RENDER
+  debug:
+    msg: "{{ lookup('template', playbook_dir + '/templates/mq-queuemanager-eph.j2') }}"
+  when: mq_ephemeral
+
+- name: MQ -  Create ephemeral QueueManager 
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', playbook_dir + '/templates/mq-queuemanager-eph.j2') }}"
+  when: mq_ephemeral

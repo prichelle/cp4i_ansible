@@ -1,0 +1,48 @@
+---
+
+- name: laod config
+  ansible.builtin.include_vars:
+    file:  '../config/config.json'
+    name: config
+
+- name: laod apic config
+  set_fact:
+    apic_cfg: "{{ config | json_query('instances.apic') }}"
+
+- name: laod storage class
+  set_fact:
+    storage_class: "{{ config | json_query('storage_class') }}"
+
+- name: Print the APIC config
+  debug:
+    msg: "The config is: {{ apic_cfg }}"
+
+- name: APIC - get sub
+  kubernetes.core.k8s_info:
+    validate_certs: false
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    name: ibm-apiconnect
+    namespace: openshift-operators
+  register: apic_sub 
+  failed_when: false
+
+- name: APIC - Check sub 
+  assert:
+    that: apic_sub.resources | length > 0
+    fail_msg: "APIC subscription is not present"
+    success_msg: "APIC subscription is present"
+
+- name: Create namespace for APIC
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/setup-namespace-playbook.yaml"
+  vars:
+    namespace: "{{ apic_cfg.namespace }}"
+
+- name: APIC - Create APIC Cluster RENDER
+  debug:
+    msg: "{{ lookup('template', playbook_dir + '/templates/apic.j2') }}"
+
+- name: APIC - Create APIC Cluster
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', playbook_dir + '/templates/apic.j2') }}"

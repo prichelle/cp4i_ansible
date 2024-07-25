@@ -1,0 +1,29 @@
+apiVersion: appconnect.ibm.com/v1beta1
+kind: DesignerAuthoring
+metadata:
+  name: ace-designer
+  namespace: "{{ ace_cfg.namespace}}"
+spec:
+  authentication:
+    integrationKeycloak:
+      enabled: true
+  authorization:
+    integrationKeycloak:
+      enabled: true
+  couchdb:
+    replicas: 1
+    storage:
+      class: "{{ storage_class.rwo }}"
+      size: 10Gi
+      type: persistent-claim
+  designerFlowsOperationMode: local
+  designerMappingAssist:
+    enabled: {{ ace_cfg.designer.map_assist}}
+    incrementalLearning:
+      schedule: Every 15 days
+  license:
+    accept: true
+    license: "{{ ace_cfg.license}}"
+    use: CloudPakForIntegrationNonProduction
+  replicas: 1
+  version: "{{ ace_cfg.version}}"
