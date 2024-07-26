@@ -592,9 +592,8 @@ if [ ! -d ${APIC_GEN_CUSTOMDIR}scripts ]; then
     mkdir -p ${APIC_GEN_CUSTOMDIR}scripts
 fi
 
-save_certificate ${apic_project} ${APIC_INSTANCE_NAME}-ingress-ca ${scriptdir}tmp
-save_certificate ${apic_project} ${APIC_INSTANCE_NAME}-gw-gateway ${scriptdir}tmp
-
+#save_certificate ${apic_project} ${APIC_INSTANCE_NAME}-ingress-ca "${scriptdir}tmp/"
+#save_certificate ${apic_project} ${APIC_INSTANCE_NAME}-gw-gateway "${scriptdir}tmp/"
 
 # Get ClusterIP for the mail server if MailHog
 mail_server_cluster_ip=$(oc -n default get svc/mailhog -o jsonpath='{.spec.clusterIP}')
@@ -645,7 +644,7 @@ fi
   mail_host=$(oc -n default get route mailhog -o jsonpath="{.spec.host}")
   mylog info "url to access mail : http://$mail_host"
 
-  getCredSecret "$APIC_INSTANCE_NAME" "apic-demo-mgmt-admin-pass" ".data.password"
+  getCredSecret "$apic_project" "apic-demo-mgmt-admin-pass" ".data.password"
   mylog info "cloud apic creds: admin ##  $cred_out"
 
 
