@@ -1,0 +1,23 @@
+---
+- hosts: localhost
+  vars:
+    config: "{{ lookup('file', '../config/config.json') }}"
+  tasks:
+    - name: laod ace config
+      set_fact:
+        inst_cfg: "{{ config | json_query('instances') }}"
+
+    - name: run eem seed script
+      shell: "./scripts/eem-seed.sh {{inst_cfg.eem.namespace}} {{inst_cfg.eem.manager.name}} {{inst_cfg.es.namespace}} {{inst_cfg.es.cluster.name}} "
+      register: result 
+
+    - name: output of the execution
+      debug: msg="{{ result.stdout_lines }}"
+
+    - name: err of the execution
+      debug: msg="{{ result.stderr_lines }}"
+
+      # until: result.rc == 0
+      # retries: 30
+      # delay : 20
+      # ignore_errors: yes

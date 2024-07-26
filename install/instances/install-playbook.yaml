@@ -10,88 +10,162 @@
     - name: Install local pre-requisites
       ansible.builtin.include_tasks: "{{ playbook_dir }}/../common/prerequisites.yaml"
 
-    # - name: get PN operator po
-    #   kubernetes.core.k8s_info:
-    #     validate_certs: false
-    #     api_version: v1
-    #     kind: Pod
-    #     label_selectors:
-    #       - "name=ibm-integration-platform-navigator-operator"
-    #     namespace: openshift-operators
-    #   register: pn_po 
-    #   failed_when: false
+    - name: Check ibm_entitlement_key 
+      assert:
+        that: ibm_entitlement_key | length > 0
+        fail_msg: "no entitlement key"
+        success_msg: "entitlement key ok"
+
+    - name: get PN operator po
+      kubernetes.core.k8s_info:
+        validate_certs: false
+        api_version: v1
+        kind: Pod
+        label_selectors:
+          - "name=ibm-integration-platform-navigator-operator"
+        namespace: openshift-operators
+      register: pn_po 
+      failed_when: false
     
-    # - name: Check status of PN 
-    #   assert:
-    #     that: pn_po.resources | length > 0
-    #     fail_msg: "CP4I operator is not present"
-    #     success_msg: "CP4I operator is present"
+    - name: Check status of PN 
+      assert:
+        that: pn_po.resources | length > 0
+        fail_msg: "CP4I operator is not present"
+        success_msg: "CP4I operator is present"
 
-    # - name: Create namespace for PN
-    #   ansible.builtin.include_tasks: "{{ playbook_dir }}/setup-namespace-playbook.yaml"
-    #   vars:
-    #     namespace: "{{ cp4i_ns }}"
+    - name: check PN deployment
+      kubernetes.core.k8s_info:
+        validate_certs: false
+        api_version: integration.ibm.com/v1beta1
+        kind: PlatformNavigator
+        name: cp4i-navigator
+        namespace: "{{ cp4i_ns }}"
+      register: pn_cr 
+      failed_when: false
 
-    # - name: Print the variable value
-    #   debug:
-    #     msg: "The value of my_variable is: {{ cp4i_config }}"
+    - name: Create namespace for PN
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/setup-namespace-playbook.yaml"
+      vars:
+        namespace: "{{ cp4i_ns }}"
+      when: pn_cr.resources | length == 0
 
-    # - name: Render and display the template
-    #   debug:
-    #     msg: "{{ lookup('template', playbook_dir + '/templates/pn-cr.j2') }}"
+    - name: Print the variable value
+      debug:
+        msg: "The value of my_variable is: {{ cp4i_config }}"
 
-    # - name: PN - create CR
-    #   kubernetes.core.k8s:
-    #     state: present
-    #     definition: "{{ lookup('template', playbook_dir + '/templates/pn-cr.j2') }}"
+    - name: Render and display the template
+      debug:
+        msg: "{{ lookup('template', playbook_dir + '/templates/pn-cr.j2') }}"
+      when: pn_cr.resources | length == 0
 
-    # - name: ACE - check installation
-    #   set_fact:
-    #     ace_install: "{{ inst_cfg.ace.install }}"
+    - name: PN - create CR
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', playbook_dir + '/templates/pn-cr.j2') }}"
+      when: pn_cr.resources | length == 0
 
-    # - name: ACE - config
-    #   debug:
-    #     msg: "ACE installation {{ ace_install }} config : {{ inst_cfg.ace }}"
+    - name: check mail server
+      kubernetes.core.k8s_info:
+        validate_certs: false
+        api_version: v1
+        kind: Service
+        name: mailhog
+        namespace: default
+      register: mail_svc 
+      failed_when: false
 
-    # - name: ACE - setup
-    #   ansible.builtin.include_tasks: "{{ playbook_dir }}/install-ace-playbook.yaml"
-    #   when: ace_install
+    - name: Create mailserver (mailhog) in default
+      shell: oc -n default new-app mailhog/mailhog
+      register: mailhog_result
+      when: mail_svc.resources | length == 0
 
-    # - name: MQ - check installation
-    #   set_fact:
-    #     mq_install: "{{ inst_cfg.mq.install }}"
+    - name: mailhog setup output
+      debug:
+        msg: "output of oc cmd: {{mailhog_result}}"
+      when: mail_svc.resources | length == 0
 
-    # - name: MQ - config
-    #   debug:
-    #     msg: "MQ installation {{ mq_install }} config : {{ inst_cfg.mq }}"
+    - name: expose mailserver
+      shell: oc -n default expose svc/mailhog --port=8025 --name=mailhog
+      register: mailhog_route_result        
+      when: mail_svc.resources | length == 0
+      
+    - name: check ACE deployment
+      kubernetes.core.k8s_info:
+        validate_certs: false
+        api_version: appconnect.ibm.com/v1beta1
+        kind: Dashboard
+        name: ace-dashboard
+        namespace: "{{ inst_cfg.ace.namespace }}"
+      register: ace_cr 
+      failed_when: false
 
-    # - name: MQ - setup
-    #   ansible.builtin.include_tasks: "{{ playbook_dir }}/install-mq-playbook.yaml"
-    #   when: mq_install
+    - name: ACE - check installation
+      set_fact:
+        ace_install: "{{ inst_cfg.ace.install }}"
 
-    # - name: APIC - check installation
-    #   set_fact:
-    #     apic_install: "{{ inst_cfg.apic.install }}"
+    - name: ACE - config
+      debug:
+        msg: "ACE installation {{ ace_install }} config : {{ inst_cfg.ace }}"
 
-    # - name: APIC - config
-    #   debug:
-    #     msg: "APIC installation {{ apic_install }} config : {{ inst_cfg.apic }}"
+    - name: ACE - setup
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/install-ace-playbook.yaml"
+      when: ace_install and (ace_cr.resources | length == 0)
 
-    # - name: APIC - setup
-    #   ansible.builtin.include_tasks: "{{ playbook_dir }}/install-apic-playbook.yaml"
-    #   when: apic_install
+    - name: check MQ deployment
+      kubernetes.core.k8s_info:
+        validate_certs: false
+        api_version: mq.ibm.com/v1beta1
+        kind: QueueManager
+        name: "{{ inst_cfg.mq.queuemanager.name }}"
+        namespace: "{{ inst_cfg.mq.namespace }}"
+      register: mq_cr 
+      failed_when: false
 
-    # - name: ES - check installation
-    #   set_fact:
-    #     es_install: "{{ inst_cfg.es.install }}"
+    - name: MQ - check installation
+      set_fact:
+        mq_install: "{{ inst_cfg.mq.install }}"
 
-    # - name: ES - config
-    #   debug:
-    #     msg: "ES installation {{ es_install }} config : {{ inst_cfg.es }}"
+    - name: MQ - config
+      debug:
+        msg: "MQ installation {{ mq_install }} config : {{ inst_cfg.mq }}"
 
-    # - name: ES - setup
-    #   ansible.builtin.include_tasks: "{{ playbook_dir }}/install-es-playbook.yaml"
-    #   when: es_install
+    - name: MQ - setup
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/install-mq-playbook.yaml"
+      when: mq_install and (mq_cr.resources | length == 0)
+
+    - name: APIC - check installation
+      set_fact:
+        apic_install: "{{ inst_cfg.apic.install }}"
+
+    - name: APIC - config
+      debug:
+        msg: "APIC installation {{ apic_install }} config : {{ inst_cfg.apic }}"
+
+    - name: check APIC deployment
+      kubernetes.core.k8s_info:
+        validate_certs: false
+        api_version: apiconnect.ibm.com/v1beta1
+        kind: APIConnectCluster
+        name: "{{ inst_cfg.apic.cluster.name }}"
+        namespace: "{{ inst_cfg.apic.namespace }}"
+      register: apic_cr 
+      failed_when: false
+
+    - name: APIC - setup
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/install-apic-playbook.yaml"
+      when: apic_install and (apic_cr.resources | length == 0)
+
+    - name: ES - check installation
+      set_fact:
+        es_install: "{{ inst_cfg.es.install }}"
+
+    - name: ES - config
+      debug:
+        msg: "ES installation {{ es_install }} config : {{ inst_cfg.es }}"
+
+    - name: ES - setup
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/install-es-playbook.yaml"
+      when: es_install
 
     - name: EEM - check installation
       set_fact:

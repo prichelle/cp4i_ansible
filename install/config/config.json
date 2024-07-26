@@ -1,0 +1,46 @@
+{
+    "entitlement_scope": "namespace",
+    "cp4i_namespace": "cp4i",
+    "operator_scope": "cluster",
+    "entitlement_key": "<your CP4I entitlement key here>",
+    "storage_class": {"rwx":"ocs-storagecluster-cephfs","rwo":"ocs-storagecluster-ceph-rbd"},
+    "operators_list": [
+        {"name":"ibm-appconnect","channel":"v12.1","version":"12.0.12.3-r1"},
+        {"name":"ibm-mq","channel":"v3.2-sc2","version":"9.4.0.0-r1"},
+        {"name":"ibm-apiconnect","channel":"v5.2-sc2","version":"10.0.8.0","license":"L-DZZQ-MGVN8V"},
+        {"name":"ibm-eventendpointmanagement","channel":"v11.2","version":"x"},
+        {"name":"ibm-eventprocessing","channel":"v1.1","version":"x"},
+        {"name":"ibm-eventstreams","channel":"v3.4","version":"x"}
+        ],
+    "common_service":{"name":"ibm-common-service-operator","channel":"v4.6","startingcsv":"ibm-common-service-operator.v4.6.4"},
+    "platform_navigator":{"name":"ibm-integration-platform-navigator","channel":"v7.3-sc2","startingcsv":"ibm-integration-platform-navigator.v7.3.0"},
+    "instances":{
+        "pn":{"version":"16.1.0","license":"L-JTPV-KYG8TF","namespace":"cp4i"},
+        "ace":{
+            "install":"true","version":"12.0.12.3-r1", "license":"L-XRNH-47FJAW","namespace":"ace"
+            ,"dashboard":{"install":"true","mode":"IntegrationRuntimes"}
+            ,"designer":{"install":"true","map_assist":"true"}
+        },
+        "apic":{"install":"true","version":"10.0.8.0", "license":"L-DZZQ-MGVN8V","namespace":"apic",
+            "cluster":{
+                "name":"apic-demo","governance":"true","testandmonitor":"false","gatewayui":"true","profile":"n1xc7.m48"
+            }},
+        "mq":{
+            "install":"true","version":"9.4.0.0-r1", "license":"L-JTPV-KYG8TF","namespace":"mq",
+            "queuemanager":{"name":"mainmqm","ha_type":"NativeHA","ephemeral":"false"}
+        },
+        "es":{
+            "install":"true","version":"11.4.0","license":"L-JTPV-KYG8TF","namespace":"event","install_datagen":"true",
+            "cluster": {
+                "name":"es-demo","authentication":"integrationKeycloak","auth_2":"scram-sha-512","ephemeral":"true"
+            }
+        },
+        "eem":{
+            "install":"true","version":"latest","license":"L-JTPV-KYG8TF","namespace":"event",
+            "manager": {
+                "name":"eem-demo","authentication":"integrationKeycloak","auth_2":"scram-sha-512","ephemeral":"true"
+            },
+            "gateway": {"install":"true","name":"eem-gateway"}
+        }
+    }
+}

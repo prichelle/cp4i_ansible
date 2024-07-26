@@ -1,15 +1,15 @@
 ---
 
-- name: laod config
+- name: load config
   ansible.builtin.include_vars:
     file:  '../config/config.json'
     name: config
 
-- name: laod apic config
+- name: load apic config
   set_fact:
     apic_cfg: "{{ config | json_query('instances.apic') }}"
 
-- name: laod storage class
+- name: load storage class
   set_fact:
     storage_class: "{{ config | json_query('storage_class') }}"
 

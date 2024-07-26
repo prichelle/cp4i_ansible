@@ -1,8 +1,0 @@
----
-
-- name: Install cp4i
-  hosts: localhost
-  connection: local
-
-- name: Install Operators
-  ansible.builtin.import_playbook: operators/install.yaml
