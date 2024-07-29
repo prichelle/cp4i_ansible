@@ -11,3 +11,7 @@
   ansible.builtin.import_playbook: instances/install-playbook.yaml
   vars:
     ibm_entitlement_key: "{{ undef(hint='Provide an Entitled Registry key') }}"
+
+- name: CP4I installion - DONE
+  debug:
+    msg: "the installation has been done"

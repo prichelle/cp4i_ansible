@@ -58,7 +58,6 @@ function download_tools () {
 
 if [ ! command -v oc &> /dev/null ]; then echo "oc could not be found"; exit 1; fi;
 if [ ! command -v jq &> /dev/null ]; then echo "jq could not be found"; exit 1; fi;
-if [ ! command -v apic &> /dev/null ]; then echo "apic could not be found"; exit 1; fi;
 
 ###################
 # INPUT VARIABLES #

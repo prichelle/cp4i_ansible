@@ -1,93 +1,107 @@
 # IBM Cloud Pak for Integration installation Ansible script
 
-This repository contains ansible scripts and associated resources to install / uninstall IBM Cloud Pak for Integration(CP4I) on an Openshift Container Platform (OCP).
+This repository contains ansible scripts and associated resources to install IBM Cloud Pak for Integration(CP4I) on an Openshift Container Platform (OCP).
+It also provides scripts to configure API Connect and to seed Event Endpoint Management.
 
 The installation script includes the following steps:
-* Upload the IBM catalog
-* Create the installation target namespace (if not existing)
-* Deploy the CP4I operators (all the operators or a selection of operators). This installation could be done with a cluste scope or a namespace scope.
-* Create the entitlment secret in the target namespace if the entitlment key should be managed at namespace level. For cluster level, refer to CP4I knowloedge center and apply it before to launch the script. 
-* Create an instance of CP4I Platform Navigator. This deployment will generate the deployment of IBM Cloud Pak foundational Services and IBM Automation foundation (Integration Cartridge).  
+* Configure the IBM catalog (the current version use only one catalog source)
+* Deploy the required operators (all the operators or a selection of operators). The current script version install the CP4I as a cluster scope.
+* Install the cert manager and the IBM Foundational service
+* Create the entitlement secret in the target namespace.  
+* Create an instance of CP4I Platform Navigator and one or multiple CP4I capabilities instances (ACE dashboard, designer, APIC, MQ queuemanager, EventStreams cluster, EventEndpointManager ). 
 
-The version of the script present in the master branch is aligned with v2021.4.
-Other branches, present in this git repo, provides support of previous version
-
-
+The version of the script present in the master branch is aligned with v16.1.
 
 ## Prerequisites
 
 * Ansible runtime on the environment where the script will be ran. 
 
-ansible-galaxy collection install community.kubernetes
+[Ansible installation](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) 
+
+On Mac Ansible can be installed using brew.  
+
+Ansible collection to be installed:  
 ansible-galaxy collection install kubernetes.core
 ansible-galaxy collection install community.general
 
-* An exisiting OCP instance. 
-* Storage provider that will be used by CP4I installed on OCP. 
+* An existing OCP instance where the Cloud Pak will be installed.  
+* Storage (RWX and RWO) provider that will be used by CP4I installed on OCP. 
 * An active OCP cli session (`oc login`) with an user having `cluster-admin` privileges.
+* An entitlement key to download IBM certified containers.
 
-The script has been tested with CP4I v2021.4 on OCP 4.7 with OCS 4.7. 
+The entitlement key can be found at [IBM Container library](https://myibm.ibm.com/products-services/containerlibrary).
+
+The current version doesn't launch the optional scripts that configure APIC and EEM. 
+These scripts can be run afterwards.
+
+The script can be re-run if it has been stopped for any reason.
+
+The script has been tested with CP4I v16.1 on OCP 4.16. 
 
 ## Installation
 
-export ENT_KEY=eyJ0eXAiOiJKV1QiLCJhbGciO
-ansible-playbook install/instances/install.yaml -e ibm_entitlement_key=$ENT_KEY
-
-
-
-
 1. Clone this git repository
    ``` 
-   git clone git@github.com:jtarte/cp4i_install_ansible.git
+   git clone git@github.com:prichelle/cp4i_ansible.git
    ``` 
+
 2. Go inside the created directory
    ```
-   cd cp4i_install_ansible
+   cd cp4i_ansible
    ```
 
-3. Create an `config.json` file using the `config.json_sample` sample file
-   ```
-   cp config.json_sample config.json
-   ```
-
-4. Edit (with yur prefered editor) the `config.json` file and update the values to reflect the installation configuration you are targeting. 
+3. Set the Entitlement key 
+```
+export ENT_KEY=<yourKey>
+```
 
 5. Launch the execution of the ansible script
    ```
-   ansible-playbook -i inventory install.yaml -e config_file=config.json
+ansible-playbook -i inventory install/install-playbook.yaml -e ibm_entitlement_key=$ENT_KEY
+
    ```
+TODO: provides output
 
-If the installation is successful, you should get a success message like the following one:
-![installation result](./img/install_result.png)
 
-The success message gives you :
-* The route of the CP4I Platform Navigator instance. 
-* The admin user (default : `admin`).
-* The password of the admin user.
+### Optional scripts
+
+Three scripts are provided to further configure the instances installation.
+
+- API Connect 
+This script configure APIC with a mail server, a provider organization and a user.
+1. got to the script folder: ./scripts/apic
+2. create a credential file "creds.properties" to hold information about user to be created
+File structure:
+```
+APIC_ORG1_USERNAME=<myUser>
+APIC_ORG1_PASSWORD=<myPassword>
+APIC_ORG1_USER_EMAIL=<myUserEmail>
+```
+3. launch the script 
+```
+./apic.config.sh
+```
+- APIC integration with EEM
+If you have installed both APIC and EEM, a script is provided to configure APIC with EEM. 
+1. got to the script folder: ./scripts/apic
+3. launch the script 
+```
+./eem_apic_config.sh
+```
+TODO: APIC configuration done but integration not tested. Could required to restart EEM pod.
+
+- EEM seed
+This script will create EventStreams Topic, EEM Topics and a Kafka Connect
+1. got to the script folder: ./scripts/eem
+3. launch the script 
+```
+./eem-seed.sh
+```
+TODO TOPICS configuration options
 
 ## Parameters for the `config.json` file
 
-The following table describes the values that could be used in `config.json` file.
+The default configuration install all CP4I capabilities with the latest version.  
+This can be changed and configured by adapting the file `./install/config/config.json`.
 
-| name | description | sample value |
-| ---- | ----------- | ------------ |  
-| entitlement_scope | Define if the CP4I entitlment key is global to a cluster or of it is restrictred to a namespace. In the case of namespace, the targeted namespace is given in `cp4i_namespace` parameter.  | `namespace` or `cluster` |
-| cp4i_namespace | The target namespace used  during the installation. If operators have namespace scope, they will be deployed here. This namespace is also used to deploye the Integration Plafform navigator instance.  | `cp4i` |
-| operator_scope | Define if the CP4I operators have a global scope( cluster) or are limited to a namespace | `namespace` or `cluster` |
-| entitlement_key | The value of your entitlment key. You could get it at [myibm.ibm.com](https://myibm.ibm.com).  | |
-| storage_class | The storage class that will be used by the IBM Cloud Pak foundational services. | ocs-storagecluster-cephfs | 
-| operators_list | Define if all the CP4I operators are deployed or only a set of selected operators. For all operators, the value should be set at `all`. For a selection of operators, you should provide a tab with the operators list. The accepted values are <ul><li>`api-connect`</li><li>`app-connect`</li><li>`aspera`</li><li>`asset-repository`</li><li>`datapower-gateway`</li><li>`eventstreams`</li><li>`mq`</li><li>`operation-dashboard`</li></ul> | `all` or `["app-connect","mq"]`
-
-
-## Uninstallation
-
-Launch the execution of the ansible script
-```
-ansible-playbook -i inventory uninstall.yaml -e config_file=config.json
-```
-
-**NB:** The target namespaced may be blocked on *Terminating* state. There are two resources that have a finaliser blocking their delation :
-* the rolebinding `admin`in the target naemspace (default value is `cp4i`). 
-* the `clients.oidc.secuirty.ibm.com` CRD named `zenclient-cp4i`.
-
-You should modify the values of the finalizers, with `[]` for example, to enforce their removal and to allow the delation of the target namespace. 
+TODO provides additional information on how to adapt the file
