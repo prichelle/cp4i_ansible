@@ -1,11 +1,11 @@
 ---
 - name: Install Operators
   hosts: localhost
-  vars:
-    config: "{{ lookup('file', '../config/config.json') }}"
-    operators_list: "{{ config | json_query('operators_list') }}"  
+  vars_files:
+    - '../config/config.json' 
 
   tasks:
+
     - name: Install local pre-requisites
       ansible.builtin.include_tasks: "{{ playbook_dir }}/../common/prerequisites.yaml"
 
@@ -109,15 +109,11 @@
         kind: Namespace
         state: present
       when: cms_ns.resources | length == 0
-    
-    - name: CMS - retrieve subscription information
-      set_fact:
-        item: "{{ config | json_query('common_service') }}"
 
     - name: CMS - create subscription
       kubernetes.core.k8s:
         state: present
-        definition: "{{ lookup('template', playbook_dir + '/templates/subs-cms.j2', vars=item) }}"
+        definition: "{{ lookup('template', playbook_dir + '/templates/subs-cms.j2', vars=common_service) }}"
 
     - name: CMS - Wait for common service pod to be ready
       kubernetes.core.k8s_info:
@@ -164,12 +160,13 @@
 
     - name: PN - retrieve subscription information
       set_fact:
-        item: "{{ config | json_query('platform_navigator') }}"
+        item: "{{ platform_navigator }}"
+        # item is used in the subs-csv j2 template
 
     - name: PN - create subscription
       kubernetes.core.k8s:
         state: present
-        definition: "{{ lookup('template', playbook_dir + '/templates/subs-csv.j2', vars=item) }}"
+        definition: "{{ lookup('template', playbook_dir + '/templates/subs-csv.j2', vars=platform_navigator) }}"
 
     - name: Wait for pn operator to be ready
       kubernetes.core.k8s_info:

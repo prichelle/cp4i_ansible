@@ -115,3 +115,17 @@
     definition:
       data:
         user-mapping.json: "{{ lookup('template', './templates/eem-roles.json') | b64encode }}"
+
+- name: EEM - load config
+  set_fact:
+     inst_cfg: "{{ config | json_query('instances') }}"
+
+- name: EEM- check ES installation
+  set_fact:
+    es_install: "{{ inst_cfg.es.install }}"
+
+- name: ES - Create eem kafka user for es
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', playbook_dir + '/templates/eem-es-admin-user.yaml') }}"
+  when: es_install

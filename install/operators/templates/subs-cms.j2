@@ -3,12 +3,11 @@ kind: Subscription
 metadata:
   labels:
     operators.coreos.com/ibm-common-service-operator.cp4i: ''
-  name: "{{ item.name }}"
+  name: "{{ common_service.name }}"
   namespace: openshift-operators
 spec:
-  channel: "{{ item.channel }}"
-  name: "{{ item.name }}"
+  channel: "{{ common_service.channel }}"
+  name: "{{ common_service.name }}"
   installPlanApproval: Automatic
   source: ibm-operator-catalog
   sourceNamespace: openshift-marketplace
-  startingCSV: "{{ item.startingcsv }}"

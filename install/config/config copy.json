@@ -17,25 +17,22 @@
     "instances":{
         "pn":{"version":"16.1.0","license":"L-JTPV-KYG8TF","namespace":"cp4i"},
         "ace":{
-            "install":"false","version":"12.0.12.3-r1", "license":"L-XRNH-47FJAW","namespace":"ace"
+            "install":"true","version":"12.0.12.3-r1", "license":"L-XRNH-47FJAW","namespace":"ace"
             ,"dashboard":{"install":"true","mode":"IntegrationRuntimes"}
             ,"designer":{"install":"true","map_assist":"true"}
         },
-        "apic":{"install":"false","version":"10.0.8.0", "license":"L-DZZQ-MGVN8V","namespace":"apic",
+        "apic":{"install":"true","version":"10.0.8.0", "license":"L-DZZQ-MGVN8V","namespace":"apic",
             "cluster":{
                 "name":"apic-demo","governance":"true","discovery":"true","testandmonitor":"false","gatewayui":"true","profile":"n1xc7.m48"
             }},
         "mq":{
-            "install":"false","version":"9.4.0.0-r1", "license":"L-JTPV-KYG8TF","namespace":"mq",
+            "install":"true","version":"9.4.0.0-r1", "license":"L-JTPV-KYG8TF","namespace":"mq",
             "queuemanager":{"name":"mainmqm","ha_type":"NativeHA","ephemeral":"false"}
         },
         "es":{
-            "install":"true","version":"latest","license":"L-JTPV-KYG8TF","namespace":"event","install_datagen":"true",
+            "install":"true","version":"11.4.0","license":"L-JTPV-KYG8TF","namespace":"event","install_datagen":"true",
             "cluster": {
                 "name":"es-demo","authentication":"integrationKeycloak","auth_2":"scram-sha-512","ephemeral":"true"
-            },
-            "kconnect":{
-                "name":"kafka-connect-cluster","version":"11.4.0"
             }
         },
         "eem":{

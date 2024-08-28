@@ -16,6 +16,9 @@ spec:
     metric: VIRTUAL_PROCESSOR_CORE
     use: nonproduction
   management:
+    discovery:
+      enabled: {{ apic_cfg.cluster.discovery }}
+      proxyCollectorEnabled: {{ apic_cfg.cluster.discovery }}
     governance:
       enabled: {{ apic_cfg.cluster.governance }}
     testAndMonitor:

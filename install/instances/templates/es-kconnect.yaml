@@ -3,7 +3,7 @@ kind: KafkaConnect
 metadata:
   annotations:
     eventstreams.ibm.com/use-connector-resources: 'true'
-  name: kafka-connect-cluster
+  name: {{ es_cfg.kconnect.name }}
   namespace: "{{ es_cfg.namespace}}"
 spec:
   config:
@@ -45,7 +45,7 @@ spec:
       metadata:
         annotations:
           cloudpakId: c8b82d189e7545f0892db9ef2731b90d
-          productVersion: {{ es_cfg.version }}
+          productVersion: {{ es_cfg.kconnect.version }}
           productID: 2a79e49111f44ec3acd89608e56138f5
           cloudpakName: IBM Cloud Pak for Integration
           productChargedContainers: kafka-connect-cluster-connect

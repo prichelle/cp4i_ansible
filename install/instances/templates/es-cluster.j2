@@ -2,6 +2,8 @@ apiVersion: eventstreams.ibm.com/v1beta2
 kind: EventStreams
 metadata:
   name: "{{ es_cfg.cluster.name}}"
+  labels:
+    backup.eventstreams.ibm.com/component: eventstreams
   namespace: "{{ es_cfg.namespace}}"
 spec:
   adminApi: {}

@@ -67,7 +67,7 @@ TODO: provides output
 
 Three scripts are provided to further configure the instances installation.
 
-- API Connect 
+#### API Connect 
 This script configure APIC with a mail server, a provider organization and a user.
 1. got to the script folder: ./scripts/apic
 2. create a credential file "creds.properties" to hold information about user to be created
@@ -90,7 +90,8 @@ If you have installed both APIC and EEM, a script is provided to configure APIC 
 ```
 TODO: APIC configuration done but integration not tested. Could required to restart EEM pod.
 
-- EEM seed
+#### EEM 
+
 This script will create EventStreams Topic, EEM Topics and a Kafka Connect
 1. got to the script folder: ./scripts/eem
 3. launch the script 

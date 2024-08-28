@@ -15,7 +15,7 @@ IFS=',' read -r -a topics <<< "$TOPICS_LIST"
 IFS=',' read -r -a topicOptions <<< "$TOPIC_OPTIONS_LIST"
 
 
-export es_usr_admin="es-admin"
+export es_usr_admin="eem-es-admin"
 
 MY_EEM_PROJECT=$(cat ../../config/config.json | jq -r ".instances.eem.namespace")
 MY_EEM_INSTANCE_NAME=$(cat ../../config/config.json | jq -r ".instances.eem.manager.name")
@@ -31,8 +31,6 @@ if [ $# -ne 1 ]; then
   mylog info "credentials to use $cred_out"
   exit
 fi
-
-
 
 eem_at=$1
 
@@ -53,22 +51,39 @@ mylog info "STEP 1: getting eem host using: oc get route -n $MY_EEM_PROJECT ${MY
 export eem_api_host=$(oc get route -n $MY_EEM_PROJECT ${MY_EEM_INSTANCE_NAME}-ibm-eem-admin -ojsonpath='https://{.spec.host}')
 export es_boostrap_svc=${MY_ES_INSTANCE_NAME}-kafka-bootstrap.${MY_ES_PROJECT}.svc
 
+mylog info "checking event streams cluster svc"
+if oc -n=$MY_ES_PROJECT get svc ${MY_ES_INSTANCE_NAME}-kafka-bootstrap > /dev/null 2>&1; then 
+  mylog info "svc exist - ok";
+else
+  mylog error "missing event streams bootstrap svc - verify installation of eventstreams";
+  exit;
+fi
+
+
 mylog info "es bootstrap used: ${es_boostrap_svc}"
 mylog info "eem api used: ${eem_api_host}"
 
 mylog info "STEP 2: getting ES credentials"
 
 export es_certificate=$(oc get secret $MY_ES_INSTANCE_NAME-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' -n $MY_ES_PROJECT| base64 -d | awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}')
+
+
+mylog info "checking event streams eem-es-admin user"
+if oc -n=$MY_ES_PROJECT get secret $es_usr_admin > /dev/null 2>&1; then 
+  mylog info "user exist - ok";
+else
+  mylog error "missing event streams user";
+  exit;
+fi
+
 export es_user_pwd=$(oc get secret $es_usr_admin -n $MY_ES_PROJECT -ojsonpath='{.data.password}' | base64 -d)
-
-
 mylog info "pwd for $es_usr_admin : $es_user_pwd "
 
 envsubst < "./templates/eem-es-cluster.json" > ./tmp/gen-eem-es-cluster.json
 
 mylog info "STEP 3: registering cluster "
 #@${EEM_GEN_CUSTOMDIR}config/eem-es-cluster.json
- eem_response=$(curl -X POST -sk \
+eem_response=$(curl -X POST -sk \
       --dump-header ./tmp/eem-api-header \
      -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
@@ -114,33 +129,40 @@ do
     #cat ./templates/10-eem-eventsource-$topic.json | sed "s|CLUSTERID|$clusterId|" > \
     #    ./tmp/eem-request-new-topic.json
 
-    topic_data=$(cat ./templates/10-eem-eventsource-$topic.json | jq '.clusterId |= '${clusterId}'')
-    
-    #mylog debug "topic  $topic : ${topic_data}"
+    mylog info "checking existence of Topic in ES"
+    es_topic = $(curl -ki -X GET -u "es-admin:HBQHcXrDGj9RSmEY4BdZRAIYvksZ42r2" -H "Accept: application/json" "https://es-demo-ibm-es-admapi-external-event.apps.66cde85f70150268e8a815e3.ocp.techzone.ibm.com/admin/topics/${topic}")
+    if [ $eem_response -eq 200 ]; then
+      mylog info "topic found in ES"
+      topic_data=$(cat ./templates/10-eem-eventsource-$topic.json | jq '.clusterId |= '${clusterId}'')
+      
+      #mylog debug "topic  $topic : ${topic_data}"
 
-    # "@./tmp/eem-request-new-topic.json" \
+      # "@./tmp/eem-request-new-topic.json" \
 
-    eem_response=$(curl -X POST -s -k \
-          --dump-header ./tmp/eem-api-header \
-          -H 'Accept: application/json' \
-          -H 'Content-Type: application/json' \
-          -H "Authorization: Bearer ${eem_at}" \
-          --data "${topic_data}" \
-          --output ./tmp/eem-response-data.json \
-          --write-out '%{response_code}' \
-          $eem_api_host/eem/eventsources)
+      eem_response=$(curl -X POST -s -k \
+            --dump-header ./tmp/eem-api-header \
+            -H 'Accept: application/json' \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer ${eem_at}" \
+            --data "${topic_data}" \
+            --output ./tmp/eem-response-data.json \
+            --write-out '%{response_code}' \
+            $eem_api_host/eem/eventsources)
 
-     if [ $eem_response -eq 200 ]; then
-       mv ./tmp/eem-response-data.json ./tmp/eem-response-data-$topic.json
-       mylog info "topic $topic added in EEM"
-      elif [ $eem_response -eq 409 ]; then
-       mylog info "topic $topic already configured in EEM"
-      else
-        mylog error "not able to create topic"
-        mylog info "response: $eem_response"
-        exit 
-      fi 
-     #eventSourceId=$(jq .id ${EEM_GEN_CUSTOMDIR}script/eem-response-data-$topic.json)
+        if [ $eem_response -eq 200 ]; then
+          mv ./tmp/eem-response-data.json ./tmp/eem-response-data-$topic.json
+          mylog info "topic $topic added in EEM"
+        elif [ $eem_response -eq 409 ]; then
+          mylog info "topic $topic already configured in EEM"
+        else
+          mylog error "not able to create topic"
+          mylog info "response: $eem_response"
+          exit 
+        fi 
+    else
+      mylog error "topic not found in ES ... skipping"
+    fi 
+
 done
 
 mylog info "STEP 5: creating options"
@@ -168,9 +190,10 @@ do
     if [ $eem_response -eq 200 ]; then
        mv ./tmp/eem-rsp-option.json ./tmp/eem-rsp-option-$topicoption.json
        mylog info "option for topic $topicoption configured in EEM"
-      fi
-    if [ $eem_response -eq 409 ]; then
+    elif [ $eem_response -eq 409 ]; then
        mylog info "option for topic $topicoption already configured in EEM"
+    else
+       mylog error "unable to process option for this topic. error code: ${eem_response}"
     fi  
 done
 
